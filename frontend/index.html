@@ -1,0 +1,1290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>NephroAI — CKD Early Detection Platform</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  --cyan: #00e5ff;
+  --cyan-dim: #00b8d4;
+  --navy: #020b18;
+  --navy2: #060f20;
+  --navy3: #0a1628;
+  --panel: rgba(6,15,32,0.85);
+  --panel2: rgba(10,22,40,0.7);
+  --border: rgba(0,229,255,0.15);
+  --border2: rgba(0,229,255,0.08);
+  --text: #e8f4ff;
+  --text2: #7fa8c8;
+  --text3: #3d6a8a;
+  --green: #00ff9d;
+  --red: #ff4d6d;
+  --amber: #ffb700;
+  --purple: #9b59ff;
+  --r: 8px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  background:#020b18;
+  color:var(--text);
+  font-family:'DM Sans',sans-serif;
+  min-height:100vh;
+  overflow-x:hidden;
+}
+h1,h2,h3,h4{font-family:'Syne',sans-serif;font-weight:700}
+code,pre{font-family:'JetBrains Mono',monospace}
+
+/* CANVAS BG */
+#bg-canvas{position:fixed;inset:0;z-index:0;pointer-events:none}
+
+/* LAYOUT */
+#root{position:relative;z-index:1}
+.app{min-height:100vh}
+
+/* NAV */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 2rem;height:64px;
+  background:rgba(2,11,24,0.9);
+  border-bottom:1px solid var(--border2);
+  backdrop-filter:blur(20px);
+}
+.nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.nav-logo-icon{width:36px;height:36px;background:linear-gradient(135deg,var(--cyan),var(--purple));border-radius:10px;display:flex;align-items:center;justify-content:center}
+.nav-logo-text{font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:700;color:var(--text)}
+.nav-links{display:flex;align-items:center;gap:1.5rem}
+.nav-link{background:none;border:none;color:var(--text2);font-family:'DM Sans',sans-serif;font-size:.9rem;cursor:pointer;padding:6px 12px;border-radius:6px;transition:.2s}
+.nav-link:hover{color:var(--cyan);background:rgba(0,229,255,.07)}
+.nav-link.active{color:var(--cyan)}
+.btn-nav{padding:8px 20px;border-radius:8px;border:1px solid var(--cyan);background:transparent;color:var(--cyan);font-size:.85rem;font-family:'Syne',sans-serif;cursor:pointer;transition:.2s}
+.btn-nav:hover{background:var(--cyan);color:#000}
+.user-chip{display:flex;align-items:center;gap:8px;background:var(--panel2);border:1px solid var(--border);padding:6px 14px;border-radius:24px;font-size:.85rem}
+.user-avatar{width:28px;height:28px;background:linear-gradient(135deg,var(--cyan),var(--purple));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;color:#000}
+.user-role{font-size:.7rem;color:var(--amber);font-weight:600}
+
+/* PANELS */
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:12px;backdrop-filter:blur(16px)}
+.panel2{background:var(--panel2);border:1px solid var(--border2);border-radius:10px}
+
+/* BUTTONS */
+.btn{padding:12px 28px;border-radius:8px;font-family:'Syne',sans-serif;font-size:.9rem;font-weight:600;cursor:pointer;transition:.2s;border:none;display:inline-flex;align-items:center;gap:8px}
+.btn-primary{background:linear-gradient(135deg,var(--cyan),#0077aa);color:#000}
+.btn-primary:hover{opacity:.9;transform:translateY(-1px)}
+.btn-secondary{background:transparent;border:1px solid var(--border);color:var(--text2)}
+.btn-secondary:hover{border-color:var(--cyan);color:var(--cyan)}
+.btn-danger{background:rgba(255,77,109,.1);border:1px solid rgba(255,77,109,.3);color:var(--red)}
+.btn-danger:hover{background:rgba(255,77,109,.2)}
+.btn-sm{padding:7px 16px;font-size:.8rem}
+.btn-xs{padding:5px 12px;font-size:.75rem}
+
+/* INPUTS */
+.input-group{margin-bottom:1rem}
+.label{display:block;font-size:.8rem;color:var(--text2);margin-bottom:6px;font-weight:500;letter-spacing:.04em}
+.input{width:100%;background:rgba(0,229,255,.04);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:.9rem;outline:none;transition:.2s}
+.input:focus{border-color:var(--cyan);background:rgba(0,229,255,.07)}
+.input-range{width:100%;accent-color:var(--cyan)}
+select.input option{background:#0a1628;color:var(--text)}
+.error-msg{color:var(--red);font-size:.78rem;margin-top:4px}
+
+/* BADGE */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;font-size:.75rem;font-weight:600}
+.badge-ckd{background:rgba(255,77,109,.15);color:var(--red);border:1px solid rgba(255,77,109,.3)}
+.badge-healthy{background:rgba(0,255,157,.12);color:var(--green);border:1px solid rgba(0,255,157,.25)}
+.badge-critical{background:rgba(255,77,109,.2);color:#ff6b6b}
+.badge-high{background:rgba(255,183,0,.15);color:var(--amber)}
+.badge-medium{background:rgba(155,89,255,.15);color:var(--purple)}
+.badge-low{background:rgba(0,255,157,.12);color:var(--green)}
+.badge-admin{background:rgba(155,89,255,.2);color:var(--purple);border:1px solid rgba(155,89,255,.3)}
+.badge-user{background:rgba(0,229,255,.1);color:var(--cyan)}
+
+/* TABLES */
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.85rem}
+th{padding:10px 14px;text-align:left;color:var(--text3);font-weight:500;border-bottom:1px solid var(--border2);white-space:nowrap}
+td{padding:10px 14px;border-bottom:1px solid var(--border2);color:var(--text2);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(0,229,255,.03)}
+
+/* PAGES */
+.page{padding:80px 2rem 2rem;max-width:1200px;margin:0 auto}
+.page-wide{padding:80px 2rem 2rem;max-width:1400px;margin:0 auto}
+
+/* LANDING */
+.hero{min-height:100vh;display:flex;align-items:center;justify-content:center;text-align:center;padding:2rem}
+.hero-eyebrow{display:inline-flex;align-items:center;gap:8px;background:rgba(0,229,255,.08);border:1px solid var(--border);padding:6px 16px;border-radius:24px;font-size:.8rem;color:var(--cyan);margin-bottom:1.5rem}
+.hero h1{font-size:clamp(2.5rem,6vw,4.5rem);line-height:1.1;margin-bottom:1.5rem}
+.hero h1 span{background:linear-gradient(90deg,var(--cyan),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero p{font-size:1.1rem;color:var(--text2);max-width:600px;margin:0 auto 2.5rem;line-height:1.7}
+.hero-btns{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap}
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1rem;margin-top:4rem}
+.stat-card{padding:1.5rem;text-align:center}
+.stat-num{font-size:2rem;font-weight:800;font-family:'Syne',sans-serif;background:linear-gradient(90deg,var(--cyan),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.stat-label{font-size:.8rem;color:var(--text2);margin-top:4px}
+
+/* FEATURES */
+.section{padding:5rem 2rem;max-width:1200px;margin:0 auto}
+.section-tag{font-size:.75rem;letter-spacing:.12em;color:var(--cyan);text-transform:uppercase;font-weight:600;margin-bottom:.75rem}
+.section h2{font-size:clamp(1.8rem,4vw,2.8rem);margin-bottom:1rem}
+.features-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.25rem;margin-top:3rem}
+.feature-card{padding:1.75rem;border-radius:12px;background:var(--panel);border:1px solid var(--border2);transition:.3s;position:relative;overflow:hidden}
+.feature-card::before{content:'';position:absolute;inset:-1px;background:linear-gradient(135deg,rgba(0,229,255,.1),transparent,rgba(155,89,255,.1));opacity:0;transition:.3s;border-radius:12px}
+.feature-card:hover::before{opacity:1}
+.feature-card:hover{transform:translateY(-4px);border-color:var(--border)}
+.feature-icon{width:48px;height:48px;background:rgba(0,229,255,.1);border:1px solid var(--border);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;margin-bottom:1rem}
+.feature-card h3{font-size:1rem;margin-bottom:.5rem}
+.feature-card p{font-size:.85rem;color:var(--text2);line-height:1.6}
+
+/* AUTH FORMS */
+.auth-container{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:2rem}
+.auth-card{width:100%;max-width:440px;padding:2.5rem}
+.auth-header{text-align:center;margin-bottom:2rem}
+.auth-header h2{margin-bottom:.5rem}
+.auth-header p{color:var(--text2);font-size:.9rem}
+.auth-switch{text-align:center;margin-top:1.5rem;font-size:.85rem;color:var(--text2)}
+.auth-switch button{background:none;border:none;color:var(--cyan);cursor:pointer;font-size:.85rem}
+.divider{display:flex;align-items:center;gap:1rem;margin:1.5rem 0;color:var(--text3);font-size:.8rem}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* PREDICTION FORM */
+.form-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1rem}
+.form-section{margin-bottom:2rem}
+.form-section-title{font-size:.75rem;letter-spacing:.1em;text-transform:uppercase;color:var(--cyan);margin-bottom:1rem;padding-bottom:.5rem;border-bottom:1px solid var(--border2)}
+.range-value{display:flex;justify-content:space-between;font-size:.78rem;color:var(--text3);margin-top:2px}
+.toggle-group{display:flex;gap:.5rem}
+.toggle-btn{flex:1;padding:9px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text2);font-size:.85rem;cursor:pointer;transition:.2s;font-family:'DM Sans',sans-serif}
+.toggle-btn.active{background:rgba(0,229,255,.12);border-color:var(--cyan);color:var(--cyan)}
+
+/* RESULT */
+.result-hero{text-align:center;padding:2.5rem}
+.result-gauge{width:200px;height:200px;margin:0 auto 1.5rem;position:relative}
+.gauge-svg{width:100%;height:100%}
+.result-label{font-size:2rem;font-weight:800;font-family:'Syne',sans-serif}
+.result-ckd{color:var(--red)}
+.result-healthy{color:var(--green)}
+.confidence-bar{width:100%;height:8px;background:rgba(255,255,255,.05);border-radius:4px;overflow:hidden;margin:1rem 0}
+.confidence-fill{height:100%;border-radius:4px;transition:width 1s ease}
+.confidence-fill-ckd{background:linear-gradient(90deg,var(--amber),var(--red))}
+.confidence-fill-healthy{background:linear-gradient(90deg,var(--cyan),var(--green))}
+.rec-list{list-style:none}
+.rec-item{padding:.75rem 1rem;border-radius:8px;background:rgba(0,229,255,.04);border-left:3px solid var(--border);margin-bottom:.5rem;font-size:.87rem;line-height:1.5}
+
+/* DASHBOARD */
+.dash-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;margin-bottom:2rem}
+.metric-card{padding:1.5rem;border-radius:12px}
+.metric-val{font-size:2rem;font-weight:800;font-family:'Syne',sans-serif}
+.metric-lbl{font-size:.78rem;color:var(--text2);margin-top:2px}
+.metric-ckd .metric-val{color:var(--red)}
+.metric-healthy .metric-val{color:var(--green)}
+.metric-total .metric-val{color:var(--cyan)}
+.metric-rate .metric-val{color:var(--amber)}
+
+/* ADMIN */
+.admin-sidebar{width:220px;flex-shrink:0}
+.admin-layout{display:flex;gap:1.5rem;padding-top:80px;min-height:100vh}
+.sidebar-item{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;cursor:pointer;color:var(--text2);font-size:.88rem;transition:.2s;background:none;border:none;width:100%;text-align:left}
+.sidebar-item:hover{background:rgba(0,229,255,.06);color:var(--text)}
+.sidebar-item.active{background:rgba(0,229,255,.1);color:var(--cyan)}
+.admin-content{flex:1;padding:1.5rem 1.5rem 1.5rem 0;min-width:0}
+
+/* SEARCH */
+.search-bar{display:flex;align-items:center;gap:12px;background:rgba(0,229,255,.04);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:1.5rem}
+.search-bar input{flex:1;background:none;border:none;color:var(--text);outline:none;font-family:'DM Sans',sans-serif;font-size:.9rem}
+.search-bar input::placeholder{color:var(--text3)}
+
+/* PAGINATION */
+.pagination{display:flex;align-items:center;gap:.5rem;margin-top:1rem;justify-content:flex-end}
+.page-btn{padding:6px 12px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;font-size:.8rem}
+.page-btn.active{background:var(--cyan);color:#000;border-color:var(--cyan)}
+.page-btn:disabled{opacity:.4;cursor:default}
+
+/* TOAST */
+.toast-container{position:fixed;bottom:1.5rem;right:1.5rem;z-index:9999;display:flex;flex-direction:column;gap:.5rem}
+.toast{padding:12px 18px;border-radius:10px;font-size:.85rem;animation:slideIn .3s ease;display:flex;align-items:center;gap:8px;min-width:260px;backdrop-filter:blur(10px)}
+.toast-success{background:rgba(0,255,157,.12);border:1px solid rgba(0,255,157,.3);color:var(--green)}
+.toast-error{background:rgba(255,77,109,.12);border:1px solid rgba(255,77,109,.3);color:var(--red)}
+.toast-info{background:rgba(0,229,255,.12);border:1px solid var(--border);color:var(--cyan)}
+@keyframes slideIn{from{transform:translateX(60px);opacity:0}to{transform:none;opacity:1}}
+
+/* CHART CONTAINER */
+.chart-box{padding:1.5rem;border-radius:12px;background:var(--panel);border:1px solid var(--border2)}
+.chart-title{font-size:.85rem;color:var(--text2);margin-bottom:1rem;font-weight:500}
+.charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-top:1.5rem}
+@media(max-width:768px){.charts-grid{grid-template-columns:1fr}}
+
+/* LOADING */
+.spinner{width:40px;height:40px;border:3px solid var(--border2);border-top-color:var(--cyan);border-radius:50%;animation:spin 1s linear infinite;margin:2rem auto}
+@keyframes spin{to{transform:rotate(360deg)}}
+.skeleton{background:linear-gradient(90deg,rgba(255,255,255,.03) 25%,rgba(255,255,255,.07) 50%,rgba(255,255,255,.03) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:6px}
+@keyframes shimmer{to{background-position:-200% 0}}
+
+/* MISC */
+.page-title{font-size:1.7rem;margin-bottom:.25rem}
+.page-sub{color:var(--text2);font-size:.9rem;margin-bottom:2rem}
+.empty-state{text-align:center;padding:4rem 2rem;color:var(--text2)}
+.empty-state .empty-icon{font-size:3rem;margin-bottom:1rem;opacity:.4}
+.risk-meter{height:10px;border-radius:5px;overflow:hidden;background:rgba(255,255,255,.05);position:relative}
+.risk-fill{height:100%;border-radius:5px}
+.tag{display:inline-block;padding:3px 10px;border-radius:20px;font-size:.72rem;font-weight:600}
+hr.divline{border:none;border-top:1px solid var(--border2);margin:1.5rem 0}
+.flex{display:flex}.flex-center{align-items:center}.flex-between{justify-content:space-between}.gap-1{gap:.5rem}.gap-2{gap:1rem}.gap-3{gap:1.5rem}.mt-1{margin-top:.5rem}.mt-2{margin-top:1rem}.mt-3{margin-top:1.5rem}.mb-1{margin-bottom:.5rem}.mb-2{margin-bottom:1rem}.fw-bold{font-weight:700}.text-sm{font-size:.85rem}.text-xs{font-size:.75rem}.text-muted{color:var(--text2)}.text-cyan{color:var(--cyan)}.text-red{color:var(--red)}.text-green{color:var(--green)}.text-amber{color:var(--amber)}
+</style>
+</head>
+<body>
+
+<canvas id="bg-canvas"></canvas>
+<div id="root"></div>
+<div class="toast-container" id="toasts"></div>
+
+<script>
+// ── ANIMATED BACKGROUND ──────────────────────────────────────────────────────
+(function(){
+  const canvas = document.getElementById('bg-canvas');
+  const ctx = canvas.getContext('2d');
+  let W, H, nodes = [], time = 0;
+
+  function resize(){
+    W = canvas.width = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  // Nodes for neural network
+  for(let i=0;i<60;i++) nodes.push({
+    x: Math.random()*W, y: Math.random()*H,
+    vx:(Math.random()-.5)*.3, vy:(Math.random()-.5)*.3,
+    r: Math.random()*2+1, pulse: Math.random()*Math.PI*2
+  });
+
+  // ECG wave
+  let ecgOffset = 0;
+  function drawECG(){
+    const y0 = H*.88, amp = 30, segW = 6;
+    ctx.beginPath();
+    ctx.strokeStyle = 'rgba(0,229,255,.25)';
+    ctx.lineWidth = 1.5;
+    for(let x=0;x<W;x+=1){
+      const phase = (x + ecgOffset * segW) % (segW*20);
+      let yOff = 0;
+      if(phase < segW*2) yOff = 0;
+      else if(phase < segW*3) yOff = -amp*.3 * Math.sin((phase-segW*2)/segW*Math.PI);
+      else if(phase < segW*4) yOff = -amp;
+      else if(phase < segW*5) yOff = amp*.5;
+      else if(phase < segW*6) yOff = 0;
+      else if(phase < segW*8) yOff = 0;
+      else yOff = 0;
+      if(x===0) ctx.moveTo(x, y0+yOff);
+      else ctx.lineTo(x, y0+yOff);
+    }
+    ctx.stroke();
+  }
+
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    time += .008;
+    ecgOffset += .8;
+
+    // Background gradient
+    const grad = ctx.createRadialGradient(W*.3, H*.2, 0, W*.3, H*.2, H*.8);
+    grad.addColorStop(0,'rgba(0,50,80,.15)');
+    grad.addColorStop(1,'transparent');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0,0,W,H);
+
+    const grad2 = ctx.createRadialGradient(W*.8, H*.7, 0, W*.8, H*.7, H*.6);
+    grad2.addColorStop(0,'rgba(60,0,120,.1)');
+    grad2.addColorStop(1,'transparent');
+    ctx.fillStyle = grad2;
+    ctx.fillRect(0,0,W,H);
+
+    // Update nodes
+    nodes.forEach(n=>{
+      n.x += n.vx; n.y += n.vy;
+      if(n.x<0||n.x>W) n.vx*=-1;
+      if(n.y<0||n.y>H) n.vy*=-1;
+      n.pulse += .02;
+    });
+
+    // Draw connections
+    for(let i=0;i<nodes.length;i++){
+      for(let j=i+1;j<nodes.length;j++){
+        const dx=nodes[i].x-nodes[j].x, dy=nodes[i].y-nodes[j].y;
+        const dist=Math.sqrt(dx*dx+dy*dy);
+        if(dist<150){
+          ctx.beginPath();
+          ctx.strokeStyle=`rgba(0,180,220,${.12*(1-dist/150)})`;
+          ctx.lineWidth=.5;
+          ctx.moveTo(nodes[i].x,nodes[i].y);
+          ctx.lineTo(nodes[j].x,nodes[j].y);
+          ctx.stroke();
+        }
+      }
+    }
+
+    // Draw nodes
+    nodes.forEach(n=>{
+      const glow = 1 + .3*Math.sin(n.pulse);
+      ctx.beginPath();
+      ctx.arc(n.x,n.y,n.r*glow,0,Math.PI*2);
+      ctx.fillStyle='rgba(0,229,255,.6)';
+      ctx.fill();
+    });
+
+    drawECG();
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+// ── APP STATE ──────────────────────────────────────────────────────────────────
+const API = 'http://localhost:5000/api';
+let state = {
+  page: 'landing',
+  user: null,
+  token: localStorage.getItem('ckd_token'),
+  loading: false,
+  predictions: [],
+  adminTab: 'overview',
+  adminUsers: [],
+  adminPredictions: [],
+  adminStats: null,
+  analytics: null,
+  currentPrediction: null,
+  formData: {},
+  adminSearch: '',
+  adminPage: 1,
+  modelMetrics: null
+};
+
+// Load user from storage
+const savedUser = localStorage.getItem('ckd_user');
+if(savedUser) try{ state.user = JSON.parse(savedUser); }catch(e){}
+
+// ── TOAST ──────────────────────────────────────────────────────────────────────
+function toast(msg, type='info'){
+  const c = document.getElementById('toasts');
+  const el = document.createElement('div');
+  el.className = `toast toast-${type}`;
+  const icon = type==='success'?'✓':type==='error'?'✕':'ℹ';
+  el.innerHTML = `<span>${icon}</span><span>${msg}</span>`;
+  c.appendChild(el);
+  setTimeout(()=>el.remove(), 3800);
+}
+
+// ── API HELPER ─────────────────────────────────────────────────────────────────
+async function api(path, opts={}){
+  const headers = {'Content-Type':'application/json'};
+  if(state.token) headers['Authorization'] = `Bearer ${state.token}`;
+  try{
+    const r = await fetch(API+path, {...opts, headers:{...headers,...(opts.headers||{})}});
+    const data = await r.json();
+    if(!r.ok) throw new Error(data.error||'Request failed');
+    return data;
+  }catch(e){
+    throw e;
+  }
+}
+
+// ── ROUTER ─────────────────────────────────────────────────────────────────────
+function navigate(page){
+  state.page = page;
+  render();
+  window.scrollTo(0,0);
+}
+
+// ── AUTH ───────────────────────────────────────────────────────────────────────
+async function login(email, password){
+  state.loading = true; render();
+  try{
+    const data = await api('/auth/login',{method:'POST',body:JSON.stringify({email,password})});
+    state.token = data.token;
+    state.user = data.user;
+    localStorage.setItem('ckd_token', data.token);
+    localStorage.setItem('ckd_user', JSON.stringify(data.user));
+    toast('Welcome back, '+data.user.username+'!','success');
+    navigate(data.user.role==='admin'?'admin':'dashboard');
+  }catch(e){
+    toast(e.message,'error');
+    state.loading=false; render();
+  }
+}
+
+async function register(username, email, password){
+  state.loading = true; render();
+  try{
+    const data = await api('/auth/register',{method:'POST',body:JSON.stringify({username,email,password})});
+    state.token = data.token;
+    state.user = data.user;
+    localStorage.setItem('ckd_token', data.token);
+    localStorage.setItem('ckd_user', JSON.stringify(data.user));
+    toast('Account created!','success');
+    navigate('dashboard');
+  }catch(e){
+    toast(e.message,'error');
+    state.loading=false; render();
+  }
+}
+
+function logout(){
+  state.token=null; state.user=null; state.predictions=[];
+  localStorage.removeItem('ckd_token');
+  localStorage.removeItem('ckd_user');
+  navigate('landing');
+  toast('Logged out','info');
+}
+
+// ── PREDICTION ──────────────────────────────────────────────────────────────────
+async function submitPrediction(formData){
+  state.loading=true; render();
+  try{
+    const result = await api('/predict',{method:'POST',body:JSON.stringify(formData)});
+    state.currentPrediction = result;
+    toast('Analysis complete!','success');
+    navigate('result');
+  }catch(e){
+    toast(e.message,'error');
+  }
+  state.loading=false;
+}
+
+async function loadPredictions(){
+  try{
+    const data = await api('/predictions');
+    state.predictions = data.predictions;
+  }catch(e){}
+  render();
+}
+
+async function loadAnalytics(){
+  try{
+    const data = await api('/analytics/user');
+    state.analytics = data;
+  }catch(e){}
+  render();
+}
+
+async function loadModelMetrics(){
+  try{
+    const data = await api('/model/metrics');
+    state.modelMetrics = data;
+  }catch(e){}
+  render();
+}
+
+async function deletePrediction(id){
+  try{
+    await api('/predictions/'+id,{method:'DELETE'});
+    state.predictions = state.predictions.filter(p=>p.id!==id);
+    toast('Deleted','success');
+    render();
+  }catch(e){ toast(e.message,'error'); }
+}
+
+// ── ADMIN ──────────────────────────────────────────────────────────────────────
+async function loadAdminData(){
+  try{
+    const [stats, users, preds] = await Promise.all([
+      api('/admin/stats'),
+      api('/admin/users'),
+      api('/admin/predictions?per_page=50')
+    ]);
+    state.adminStats = stats;
+    state.adminUsers = users.users;
+    state.adminPredictions = preds.predictions;
+  }catch(e){ toast(e.message,'error'); }
+  render();
+}
+
+async function adminDeleteUser(id){
+  if(!confirm('Delete this user and all their data?')) return;
+  try{
+    await api('/admin/users/'+id,{method:'DELETE'});
+    state.adminUsers = state.adminUsers.filter(u=>u.id!==id);
+    toast('User deleted','success');
+    render();
+  }catch(e){ toast(e.message,'error'); }
+}
+
+async function adminDeletePrediction(id){
+  try{
+    await api('/admin/predictions/'+id,{method:'DELETE'});
+    state.adminPredictions = state.adminPredictions.filter(p=>p.id!==id);
+    toast('Record deleted','success');
+    render();
+  }catch(e){ toast(e.message,'error'); }
+}
+
+// ── COMPONENTS ─────────────────────────────────────────────────────────────────
+function Navbar(){
+  const links = state.user ? (
+    state.user.role==='admin' ?
+    [['admin','⚙ Admin Panel'],['predict','🔬 Predict'],['history','📋 History']] :
+    [['dashboard','Dashboard'],['predict','Predict'],['history','History'],['analytics','Analytics']]
+  ) : [];
+
+  return `<nav>
+    <a class="nav-logo" href="#" onclick="navigate('landing');return false">
+      <div class="nav-logo-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>
+      <span class="nav-logo-text">NephroAI</span>
+    </a>
+    <div class="nav-links">
+      ${links.map(([p,l])=>`<button class="nav-link ${state.page===p?'active':''}" onclick="navigate('${p}')">${l}</button>`).join('')}
+      ${state.user ? `
+        <div class="user-chip">
+          <div class="user-avatar">${state.user.username[0].toUpperCase()}</div>
+          <div>
+            <div style="font-size:.82rem;font-weight:600">${state.user.username}</div>
+            <div class="user-role">${state.user.role.toUpperCase()}</div>
+          </div>
+        </div>
+        <button class="btn-nav" onclick="logout()">Sign Out</button>
+      ` : `
+        <button class="btn-nav" onclick="navigate('login')">Sign In</button>
+        <button class="btn btn-primary btn-sm" onclick="navigate('register')">Get Started</button>
+      `}
+    </div>
+  </nav>`;
+}
+
+// ── LANDING PAGE ─────────────────────────────────────────────────────────────
+function LandingPage(){
+  return `
+  <div class="hero">
+    <div>
+      <div class="hero-eyebrow">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+        AI-Powered Early Detection System
+      </div>
+      <h1>Detect Kidney Disease<br><span>Before It's Too Late</span></h1>
+      <p>NephroAI uses an advanced Random Forest machine learning model trained on clinical data to predict Chronic Kidney Disease with 99%+ accuracy — empowering early intervention.</p>
+      <div class="hero-btns">
+        <button class="btn btn-primary" onclick="navigate('${state.user?'predict':'register'}')">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+          ${state.user?'Run Analysis':'Start Free Analysis'}
+        </button>
+        <button class="btn btn-secondary" onclick="navigate('login')">Learn More ↓</button>
+      </div>
+      <div class="stats-row">
+        ${[['99.8%','Model Accuracy'],['19','Clinical Features'],['<1s','Prediction Time'],['500+','Training Records']].map(([n,l])=>`
+          <div class="stat-card panel">
+            <div class="stat-num">${n}</div>
+            <div class="stat-label">${l}</div>
+          </div>`).join('')}
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <p class="section-tag">Why NephroAI</p>
+    <h2>Clinical-Grade AI at Your Fingertips</h2>
+    <p class="text-muted" style="max-width:560px">Chronic Kidney Disease affects 850 million people worldwide. Early detection is the #1 factor in preventing kidney failure.</p>
+    <div class="features-grid">
+      ${[
+        ['🧬','Random Forest ML','Ensemble of 200 decision trees trained on UCI CKD dataset with hyperparameter tuning and cross-validation.'],
+        ['⚡','Real-Time Analysis','Submit 19 clinical parameters and get instant risk assessment with confidence scoring.'],
+        ['📊','Feature Importance','Understand which biomarkers are driving the prediction — serum creatinine, hemoglobin, and more.'],
+        ['🔒','Secure & Private','JWT authentication, hashed passwords, and encrypted session management keep patient data safe.'],
+        ['📋','Prediction History','Track risk trends over time with analytics dashboards and exportable reports.'],
+        ['👨‍⚕️','Medical Recommendations','AI-generated, parameter-specific clinical guidance for each prediction result.']
+      ].map(([i,t,d])=>`
+        <div class="feature-card">
+          <div class="feature-icon">${i}</div>
+          <h3>${t}</h3>
+          <p>${d}</p>
+        </div>`).join('')}
+    </div>
+  </div>
+
+  <div class="section" style="text-align:center;padding-bottom:6rem">
+    <p class="section-tag">Get Started Today</p>
+    <h2>Protect Your Kidney Health</h2>
+    <p class="text-muted" style="max-width:500px;margin:1rem auto 2rem">Create a free account and run your first CKD risk analysis in under 2 minutes.</p>
+    <button class="btn btn-primary" onclick="navigate('register')">Create Free Account →</button>
+    <p class="text-muted text-xs mt-2">Admin access: admin@ckd.ai / Admin@123</p>
+  </div>`;
+}
+
+// ── AUTH PAGES ────────────────────────────────────────────────────────────────
+function LoginPage(){
+  return `
+  <div class="auth-container">
+    <div class="panel auth-card">
+      <div class="auth-header">
+        <div style="width:56px;height:56px;background:linear-gradient(135deg,var(--cyan),var(--purple));border-radius:16px;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;font-size:1.5rem">🧬</div>
+        <h2>Welcome Back</h2>
+        <p>Sign in to your NephroAI account</p>
+      </div>
+      <div class="input-group">
+        <label class="label">Email Address</label>
+        <input class="input" type="email" id="login-email" placeholder="you@example.com" value=""/>
+      </div>
+      <div class="input-group">
+        <label class="label">Password</label>
+        <input class="input" type="password" id="login-pass" placeholder="••••••••" value=""/>
+      </div>
+      <button class="btn btn-primary" style="width:100%;justify-content:center;padding:13px" onclick="handleLogin()" ${state.loading?'disabled':''}>
+        ${state.loading?'<div class="spinner" style="width:20px;height:20px;margin:0"></div>':'Sign In →'}
+      </button>
+      <div class="auth-switch">No account? <button onclick="navigate('register')">Create one free</button></div>
+      <hr class="divline"/>
+    </div>
+  </div>`;
+}
+
+function RegisterPage(){
+  return `
+  <div class="auth-container">
+    <div class="panel auth-card">
+      <div class="auth-header">
+        <div style="width:56px;height:56px;background:linear-gradient(135deg,var(--cyan),var(--purple));border-radius:16px;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;font-size:1.5rem">⚕️</div>
+        <h2>Create Account</h2>
+        <p>Start your kidney health monitoring journey</p>
+      </div>
+      <div class="input-group">
+        <label class="label">Full Name</label>
+        <input class="input" id="reg-name" placeholder="Dr. John Smith"/>
+      </div>
+      <div class="input-group">
+        <label class="label">Email Address</label>
+        <input class="input" type="email" id="reg-email" placeholder="you@hospital.com"/>
+      </div>
+      <div class="input-group">
+        <label class="label">Password</label>
+        <input class="input" type="password" id="reg-pass" placeholder="Min 8 characters"/>
+      </div>
+      <button class="btn btn-primary" style="width:100%;justify-content:center;padding:13px" onclick="handleRegister()" ${state.loading?'disabled':''}>
+        ${state.loading?'<div class="spinner" style="width:20px;height:20px;margin:0"></div>':'Create Account →'}
+      </button>
+      <div class="auth-switch">Already have an account? <button onclick="navigate('login')">Sign in</button></div>
+    </div>
+  </div>`;
+}
+
+function handleLogin(){
+  const e=document.getElementById('login-email')?.value;
+  const p=document.getElementById('login-pass')?.value;
+  if(!e||!p){toast('Fill all fields','error');return;}
+  login(e,p);
+}
+function handleRegister(){
+  const n=document.getElementById('reg-name')?.value;
+  const e=document.getElementById('reg-email')?.value;
+  const p=document.getElementById('reg-pass')?.value;
+  if(!n||!e||!p){toast('Fill all fields','error');return;}
+  if(p.length<6){toast('Password too short','error');return;}
+  register(n,e,p);
+}
+
+// ── DASHBOARD ─────────────────────────────────────────────────────────────────
+function DashboardPage(){
+  const recent = state.predictions.slice(0,5);
+  const ckdCount = state.predictions.filter(p=>p.result==='CKD').length;
+  const healthyCount = state.predictions.filter(p=>p.result==='Healthy').length;
+
+  return `
+  <div class="page">
+    <div class="flex flex-between flex-center mb-2">
+      <div>
+        <h1 class="page-title">Dashboard</h1>
+        <p class="page-sub">Welcome back, ${state.user?.username}</p>
+      </div>
+      <button class="btn btn-primary" onclick="navigate('predict')">🔬 New Analysis</button>
+    </div>
+
+    <div class="dash-grid">
+      <div class="panel metric-card metric-total">
+        <div class="metric-val">${state.predictions.length}</div>
+        <div class="metric-lbl">Total Tests</div>
+      </div>
+      <div class="panel metric-card metric-ckd">
+        <div class="metric-val">${ckdCount}</div>
+        <div class="metric-lbl">CKD Detected</div>
+      </div>
+      <div class="panel metric-card metric-healthy">
+        <div class="metric-val">${healthyCount}</div>
+        <div class="metric-lbl">Healthy Results</div>
+      </div>
+      <div class="panel metric-card metric-rate">
+        <div class="metric-val">${state.predictions.length?Math.round(ckdCount/state.predictions.length*100):0}%</div>
+        <div class="metric-lbl">CKD Rate</div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:2fr 1fr;gap:1.25rem">
+      <div class="panel" style="padding:1.5rem">
+        <div class="flex flex-between flex-center mb-2">
+          <h3 style="font-size:1rem">Recent Predictions</h3>
+          <button class="btn btn-secondary btn-xs" onclick="navigate('history')">View All</button>
+        </div>
+        ${recent.length===0?`<div class="empty-state"><div class="empty-icon">🔬</div><p>No predictions yet</p><button class="btn btn-primary btn-sm mt-2" onclick="navigate('predict')">Run First Analysis</button></div>` : `
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Date</th><th>Result</th><th>Confidence</th><th>Risk</th></tr></thead>
+            <tbody>
+              ${recent.map(p=>`<tr>
+                <td class="text-xs text-muted">${new Date(p.created_at).toLocaleDateString()}</td>
+                <td><span class="badge ${p.result==='CKD'?'badge-ckd':'badge-healthy'}">${p.result}</span></td>
+                <td><span class="text-cyan fw-bold">${p.confidence.toFixed(1)}%</span></td>
+                <td><span class="badge badge-${p.risk_level.toLowerCase()}">${p.risk_level}</span></td>
+              </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>`}
+      </div>
+      <div class="panel" style="padding:1.5rem">
+        <h3 style="font-size:1rem;margin-bottom:1rem">Quick Actions</h3>
+        <div style="display:flex;flex-direction:column;gap:.75rem">
+          <button class="btn btn-secondary" style="justify-content:flex-start" onclick="navigate('predict')">🔬 New Prediction</button>
+          <button class="btn btn-secondary" style="justify-content:flex-start" onclick="navigate('analytics')">📊 View Analytics</button>
+          <button class="btn btn-secondary" style="justify-content:flex-start" onclick="navigate('history')">📋 History</button>
+          ${state.user?.role==='admin'?`<button class="btn btn-secondary" style="justify-content:flex-start;border-color:var(--purple);color:var(--purple)" onclick="navigate('admin')">⚙️ Admin Panel</button>`:''}
+        </div>
+        <hr class="divline"/>
+        <p class="text-xs text-muted"><strong class="text-cyan">Model:</strong> Random Forest v2.0<br>Accuracy: 99.8% | CV: 5-fold</p>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── PREDICTION FORM ────────────────────────────────────────────────────────────
+const FORM_FIELDS = {
+  numeric:[
+    {id:'age',label:'Age (years)',min:2,max:90,step:1,default:45},
+    {id:'bp',label:'Blood Pressure (mm/Hg)',min:50,max:180,step:1,default:80},
+    {id:'bgr',label:'Blood Glucose Random (mg/dL)',min:70,max:490,step:1,default:120},
+    {id:'bu',label:'Blood Urea (mg/dL)',min:10,max:400,step:1,default:35},
+    {id:'sc',label:'Serum Creatinine (mg/dL)',min:0.4,max:76,step:0.1,default:1.0},
+    {id:'sod',label:'Sodium (mEq/L)',min:100,max:165,step:1,default:140},
+    {id:'pot',label:'Potassium (mEq/L)',min:2.5,max:47,step:0.1,default:4.5},
+    {id:'hemo',label:'Hemoglobin (g/dL)',min:3,max:18,step:0.1,default:14},
+    {id:'pcv',label:'Packed Cell Volume (%)',min:9,max:54,step:1,default:44},
+    {id:'wc',label:'WBC Count (cells/mm³)',min:2200,max:26400,step:100,default:7500},
+    {id:'rc',label:'RBC Count (millions/mm³)',min:2.1,max:8,step:0.1,default:5.0},
+  ],
+  categorical:[
+    {id:'sg',label:'Specific Gravity',options:[1.005,1.010,1.015,1.020,1.025]},
+    {id:'al',label:'Albumin (0-5)',options:[0,1,2,3,4,5]},
+    {id:'su',label:'Sugar (0-5)',options:[0,1,2,3,4,5]},
+  ],
+  binary:[
+    {id:'htn',label:'Hypertension'},
+    {id:'dm',label:'Diabetes Mellitus'},
+    {id:'appet',label:'Poor Appetite'},
+    {id:'pe',label:'Pedal Edema'},
+    {id:'ane',label:'Anemia'},
+  ]
+};
+
+// Init default form data
+if(Object.keys(state.formData).length===0){
+  FORM_FIELDS.numeric.forEach(f=>state.formData[f.id]=f.default);
+  FORM_FIELDS.categorical.forEach(f=>state.formData[f.id]=f.options[2]);
+  FORM_FIELDS.binary.forEach(f=>state.formData[f.id]=0);
+}
+
+function PredictPage(){
+  if(!state.user) return `<div class="page"><p>Please <button class="btn btn-primary btn-sm" onclick="navigate('login')">login</button> first.</p></div>`;
+
+  const fd = state.formData;
+  return `
+  <div class="page-wide">
+    <h1 class="page-title">CKD Risk Analysis</h1>
+    <p class="page-sub">Enter patient clinical parameters for AI-powered kidney disease risk assessment</p>
+
+    <div style="display:grid;grid-template-columns:2fr 1fr;gap:1.5rem;align-items:start">
+      <div>
+        <div class="panel" style="padding:2rem">
+          <div class="form-section">
+            <div class="form-section-title">Numerical Parameters</div>
+            <div class="form-grid">
+              ${FORM_FIELDS.numeric.map(f=>`
+                <div class="input-group">
+                  <label class="label">${f.label}</label>
+                  <input class="input" type="number" min="${f.min}" max="${f.max}" step="${f.step}"
+                    value="${fd[f.id]||f.default}"
+                    onchange="state.formData['${f.id}']=parseFloat(this.value);updateRangeVal('${f.id}')"/>
+                  <input class="input-range mt-1" id="range-${f.id}" type="range" min="${f.min}" max="${f.max}" step="${f.step}"
+                    value="${fd[f.id]||f.default}"
+                    oninput="state.formData['${f.id}']=parseFloat(this.value);this.previousElementSibling.value=this.value"/>
+                  <div class="range-value"><span>${f.min}</span><span>${f.max}</span></div>
+                </div>`).join('')}
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section-title">Categorical Parameters</div>
+            <div class="form-grid">
+              ${FORM_FIELDS.categorical.map(f=>`
+                <div class="input-group">
+                  <label class="label">${f.label}</label>
+                  <select class="input" onchange="state.formData['${f.id}']=parseFloat(this.value)">
+                    ${f.options.map(o=>`<option value="${o}" ${fd[f.id]==o?'selected':''}>${o}</option>`).join('')}
+                  </select>
+                </div>`).join('')}
+            </div>
+          </div>
+
+          <div class="form-section" style="margin-bottom:0">
+            <div class="form-section-title">Binary Clinical Indicators</div>
+            <div class="form-grid">
+              ${FORM_FIELDS.binary.map(f=>`
+                <div class="input-group">
+                  <label class="label">${f.label}</label>
+                  <div class="toggle-group">
+                    <button class="toggle-btn ${fd[f.id]==0?'active':''}" onclick="state.formData['${f.id}']=0;render()">No</button>
+                    <button class="toggle-btn ${fd[f.id]==1?'active':''}" onclick="state.formData['${f.id}']=1;render()">Yes</button>
+                  </div>
+                </div>`).join('')}
+            </div>
+          </div>
+        </div>
+
+        <button class="btn btn-primary mt-2" style="width:100%;justify-content:center;padding:15px;font-size:1rem"
+          onclick="submitPrediction(state.formData)" ${state.loading?'disabled':''}>
+          ${state.loading?
+            '<div class="spinner" style="width:22px;height:22px;margin:0;border-top-color:#000"></div> Analyzing...' :
+            '🧬 Run CKD Analysis'}
+        </button>
+      </div>
+
+      <div>
+        <div class="panel" style="padding:1.5rem">
+          <h3 style="font-size:.95rem;margin-bottom:1rem">Parameter Guide</h3>
+          <div style="display:flex;flex-direction:column;gap:.75rem;font-size:.8rem">
+            ${[
+              ['Serum Creatinine','Normal: 0.6–1.2 mg/dL','High → kidney damage'],
+              ['Hemoglobin','Normal: 12–17 g/dL','Low → anemia'],
+              ['Blood Urea','Normal: 10–40 mg/dL','High → uremia risk'],
+              ['Albumin','Normal: 0 (none)','High → protein leak'],
+              ['Blood Pressure','Normal: <80 mmHg','High → hypertension'],
+            ].map(([n,norm,warn])=>`
+              <div style="border-left:2px solid var(--border);padding:.5rem .75rem">
+                <div class="fw-bold" style="color:var(--text)">${n}</div>
+                <div class="text-muted">${norm}</div>
+                <div style="color:var(--amber)">${warn}</div>
+              </div>`).join('')}
+          </div>
+        </div>
+
+        <div class="panel mt-2" style="padding:1.5rem">
+          <h3 style="font-size:.9rem;margin-bottom:.75rem">Current Input</h3>
+          <div style="font-size:.75rem;display:grid;grid-template-columns:1fr 1fr;gap:4px">
+            ${['age','bp','sc','bu','hemo','bgr'].map(k=>`
+              <div class="flex flex-between" style="padding:4px 0;border-bottom:1px solid var(--border2)">
+                <span class="text-muted">${k.toUpperCase()}</span>
+                <span class="text-cyan fw-bold">${state.formData[k]||0}</span>
+              </div>`).join('')}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function updateRangeVal(id){
+  const r=document.getElementById('range-'+id);
+  if(r) r.value=state.formData[id];
+}
+
+// ── RESULT PAGE ───────────────────────────────────────────────────────────────
+function ResultPage(){
+  const r = state.currentPrediction;
+  if(!r) return `<div class="page"><p>No prediction. <button class="btn btn-primary btn-sm" onclick="navigate('predict')">Make one</button></p></div>`;
+
+  const isCKD = r.result === 'CKD';
+  const conf = r.confidence;
+  const color = isCKD ? '#ff4d6d' : '#00ff9d';
+  const riskColors = {Critical:'#ff4d6d',High:'#ffb700',Medium:'#9b59ff',Low:'#00ff9d'};
+  const riskPct = {Critical:95,High:75,Medium:50,Low:20};
+
+  return `
+  <div class="page">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;align-items:start">
+      <div>
+        <div class="panel" style="padding:2rem;text-align:center">
+          <div style="font-size:.75rem;letter-spacing:.1em;color:var(--text2);margin-bottom:1rem">ANALYSIS RESULT</div>
+          
+          <!-- Gauge -->
+          <div class="result-gauge">
+            <svg class="gauge-svg" viewBox="0 0 200 200">
+              <defs>
+                <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stop-color="${isCKD?'#ff4d6d':'#00e5ff'}"/>
+                  <stop offset="100%" stop-color="${isCKD?'#ff0055':'#00ff9d'}"/>
+                </linearGradient>
+              </defs>
+              <circle cx="100" cy="100" r="80" fill="none" stroke="rgba(255,255,255,.05)" stroke-width="16"/>
+              <circle cx="100" cy="100" r="80" fill="none" stroke="url(#g1)" stroke-width="16"
+                stroke-dasharray="${2*Math.PI*80*conf/100} ${2*Math.PI*80*(1-conf/100)}"
+                stroke-dashoffset="${2*Math.PI*80*0.25}"
+                stroke-linecap="round" style="transition:stroke-dasharray 1s ease"/>
+              <text x="100" y="90" text-anchor="middle" fill="${color}" font-size="32" font-weight="800" font-family="Syne,sans-serif">${conf.toFixed(0)}%</text>
+              <text x="100" y="115" text-anchor="middle" fill="rgba(255,255,255,.4)" font-size="11" font-family="DM Sans,sans-serif">CONFIDENCE</text>
+            </svg>
+          </div>
+
+          <div class="result-label ${isCKD?'result-ckd':'result-healthy'}">${r.result}</div>
+          <p class="text-muted text-sm mt-1">${isCKD?'Chronic Kidney Disease Detected':'No CKD Indicators Found'}</p>
+
+          <div style="margin:1.5rem 0">
+            <div class="flex flex-between text-xs text-muted mb-1">
+              <span>Risk Level: <strong style="color:${riskColors[r.risk_level]}">${r.risk_level}</strong></span>
+              <span>${riskPct[r.risk_level]}%</span>
+            </div>
+            <div class="risk-meter">
+              <div class="risk-fill" style="width:${riskPct[r.risk_level]}%;background:${riskColors[r.risk_level]}"></div>
+            </div>
+          </div>
+
+          ${isCKD?`<div style="background:rgba(255,77,109,.1);border:1px solid rgba(255,77,109,.25);border-radius:8px;padding:1rem;margin-top:.5rem">
+            <div style="font-size:.85rem;color:var(--red);font-weight:600">⚠️ Medical Consultation Required</div>
+            <div style="font-size:.78rem;color:var(--text2);margin-top:.25rem">Please consult a nephrologist immediately for comprehensive kidney evaluation.</div>
+          </div>`:''}
+
+          <div style="display:flex;gap:.75rem;margin-top:1.5rem">
+            <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="navigate('predict')">New Test</button>
+            <button class="btn btn-secondary" style="flex:1;justify-content:center" onclick="navigate('history')">History</button>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="panel" style="padding:1.5rem;margin-bottom:1.25rem">
+          <h3 style="font-size:.95rem;margin-bottom:1rem">AI Medical Recommendations</h3>
+          <ul class="rec-list">
+            ${(r.recommendations||[]).map(rec=>`
+              <li class="rec-item" style="border-left-color:${isCKD?'rgba(255,77,109,.4)':'rgba(0,229,255,.3)'}">${rec}</li>
+            `).join('')}
+          </ul>
+        </div>
+
+        <div class="panel" style="padding:1.5rem">
+          <h3 style="font-size:.95rem;margin-bottom:1rem">Key Input Values</h3>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:.82rem">
+            ${Object.entries(r).filter(([k])=>['age','bp','sc','bu','hemo','bgr','pcv','wc'].includes(k)).map(([k,v])=>`
+              <div style="background:rgba(0,229,255,.04);border:1px solid var(--border2);border-radius:6px;padding:8px 12px">
+                <div class="text-muted text-xs">${k.toUpperCase()}</div>
+                <div class="fw-bold text-cyan">${typeof v==='number'?v.toFixed(1):v}</div>
+              </div>`).join('')}
+          </div>
+          <p class="text-xs text-muted mt-2">Prediction ID: #${r.prediction_id||'N/A'}</p>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── HISTORY PAGE ──────────────────────────────────────────────────────────────
+function HistoryPage(){
+  return `
+  <div class="page">
+    <div class="flex flex-between flex-center mb-2">
+      <div>
+        <h1 class="page-title">Prediction History</h1>
+        <p class="page-sub">${state.predictions.length} total records</p>
+      </div>
+      <button class="btn btn-primary" onclick="navigate('predict')">+ New Test</button>
+    </div>
+
+    <div class="panel" style="padding:1.5rem">
+      ${state.predictions.length===0?
+        `<div class="empty-state"><div class="empty-icon">📋</div><p>No predictions yet</p></div>` :
+        `<div class="table-wrap">
+          <table>
+            <thead><tr><th>#</th><th>Date & Time</th><th>Result</th><th>Confidence</th><th>Risk Level</th><th>SC</th><th>Hemo</th><th>Action</th></tr></thead>
+            <tbody>
+              ${state.predictions.map(p=>`
+                <tr>
+                  <td class="text-xs text-muted">#${p.id}</td>
+                  <td class="text-xs text-muted">${new Date(p.created_at).toLocaleString()}</td>
+                  <td><span class="badge ${p.result==='CKD'?'badge-ckd':'badge-healthy'}">${p.result}</span></td>
+                  <td><span class="text-cyan fw-bold">${p.confidence.toFixed(1)}%</span></td>
+                  <td><span class="badge badge-${p.risk_level.toLowerCase()}">${p.risk_level}</span></td>
+                  <td class="text-xs">${p.input_data?.sc?.toFixed(1)||'-'}</td>
+                  <td class="text-xs">${p.input_data?.hemo?.toFixed(1)||'-'}</td>
+                  <td><button class="btn btn-danger btn-xs" onclick="deletePrediction(${p.id})">Delete</button></td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>`}
+    </div>
+  </div>`;
+}
+
+// ── ANALYTICS PAGE ─────────────────────────────────────────────────────────────
+function AnalyticsPage(){
+  const a = state.analytics;
+  const m = state.modelMetrics;
+
+  return `
+  <div class="page">
+    <h1 class="page-title">Analytics</h1>
+    <p class="page-sub">Your kidney health insights and model performance</p>
+
+    ${a ? `
+    <div class="dash-grid">
+      <div class="panel metric-card metric-total"><div class="metric-val">${a.total_tests}</div><div class="metric-lbl">Total Tests</div></div>
+      <div class="panel metric-card metric-ckd"><div class="metric-val">${a.ckd_count}</div><div class="metric-lbl">CKD Detected</div></div>
+      <div class="panel metric-card metric-healthy"><div class="metric-val">${a.healthy_count}</div><div class="metric-lbl">Healthy Results</div></div>
+      <div class="panel metric-card metric-rate">
+        <div class="metric-val">${a.total_tests?Math.round(a.ckd_count/a.total_tests*100):0}%</div>
+        <div class="metric-lbl">CKD Rate</div>
+      </div>
+    </div>
+
+    <div class="charts-grid">
+      <div class="chart-box" style="min-height:280px">
+        <div class="chart-title">CKD vs Healthy Distribution</div>
+        <canvas id="pieChart" height="220"></canvas>
+      </div>
+      <div class="chart-box" style="min-height:280px">
+        <div class="chart-title">Risk Level Breakdown</div>
+        <canvas id="riskChart" height="220"></canvas>
+      </div>
+    </div>` : '<div class="spinner"></div>'}
+
+    ${m ? `
+    <div class="panel mt-2" style="padding:1.5rem">
+      <h3 style="font-size:1rem;margin-bottom:1.25rem">ML Model Performance Metrics</h3>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1rem;margin-bottom:1.5rem">
+        ${[
+          ['Accuracy',m.metrics.accuracy,'cyan'],
+          ['Precision',m.metrics.precision,'green'],
+          ['Recall',m.metrics.recall,'amber'],
+          ['F1 Score',m.metrics.f1_score,'purple'],
+          ['ROC-AUC',m.metrics.roc_auc,'cyan'],
+        ].map(([label,val,c])=>`
+          <div class="panel2" style="padding:1rem;text-align:center">
+            <div style="font-size:1.5rem;font-weight:800;font-family:Syne;color:var(--${c})">${(val*100).toFixed(1)}%</div>
+            <div class="text-xs text-muted mt-1">${label}</div>
+          </div>`).join('')}
+      </div>
+      
+      <div class="chart-title">Feature Importance (Top 10)</div>
+      <canvas id="featureChart" height="180"></canvas>
+    </div>` : ''}
+  </div>`;
+}
+
+function initAnalyticsCharts(){
+  const a = state.analytics;
+  const m = state.modelMetrics;
+
+  if(a && document.getElementById('pieChart')){
+    new Chart('pieChart',{type:'doughnut',data:{
+      labels:['CKD','Healthy'],
+      datasets:[{data:[a.ckd_count,a.healthy_count],backgroundColor:['rgba(255,77,109,.7)','rgba(0,255,157,.6)'],borderColor:['#ff4d6d','#00ff9d'],borderWidth:2}]
+    },options:{plugins:{legend:{labels:{color:'#7fa8c8',font:{family:'DM Sans'}}}},cutout:'65%'}});
+  }
+  if(a && document.getElementById('riskChart')){
+    const riskDist = a.risk_distribution||{};
+    const labels = Object.keys(riskDist);
+    const vals = labels.map(k=>riskDist[k]);
+    const cols = {Low:'rgba(0,255,157,.6)',Medium:'rgba(155,89,255,.6)',High:'rgba(255,183,0,.6)',Critical:'rgba(255,77,109,.7)'};
+    new Chart('riskChart',{type:'bar',data:{
+      labels,datasets:[{data:vals,backgroundColor:labels.map(l=>cols[l]||'rgba(0,229,255,.5)'),borderRadius:6}]
+    },options:{plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#7fa8c8'}},y:{ticks:{color:'#7fa8c8'},grid:{color:'rgba(255,255,255,.04)'}}}}});
+  }
+  if(m && document.getElementById('featureChart')){
+    const fi = m.feature_importance;
+    const top10 = Object.entries(fi).slice(0,10);
+    new Chart('featureChart',{type:'bar',data:{
+      labels:top10.map(([k])=>k.toUpperCase()),
+      datasets:[{data:top10.map(([,v])=>+(v*100).toFixed(2)),
+        backgroundColor:'rgba(0,229,255,.4)',borderColor:'var(--cyan)',borderWidth:1,borderRadius:4}]
+    },options:{indexAxis:'y',plugins:{legend:{display:false}},
+      scales:{x:{ticks:{color:'#7fa8c8',callback:v=>v+'%'},grid:{color:'rgba(255,255,255,.04)'}},y:{ticks:{color:'#7fa8c8'}}}}});
+  }
+}
+
+// ── ADMIN PANEL ───────────────────────────────────────────────────────────────
+function AdminPage(){
+  if(!state.user||state.user.role!=='admin') return `<div class="page"><p>Access denied.</p></div>`;
+
+  const tabs = [
+    ['overview','📊 Overview'],['users','👥 Users'],['predictions','📋 Predictions'],['model','🧬 Model']
+  ];
+
+  const s = state.adminStats;
+
+  return `
+  <div style="display:flex;min-height:100vh;padding-top:64px">
+    <div class="admin-sidebar" style="padding:1.5rem 0 1.5rem 1.5rem;border-right:1px solid var(--border2)">
+      <div style="padding:0 .5rem;margin-bottom:1.5rem">
+        <div class="text-xs text-muted" style="letter-spacing:.1em;margin-bottom:.5rem">ADMIN PANEL</div>
+        <div class="flex flex-center gap-1">
+          <span class="badge badge-admin">⚙ Admin</span>
+          <span class="text-xs text-muted">${state.user.username}</span>
+        </div>
+      </div>
+      ${tabs.map(([t,l])=>`<button class="sidebar-item ${state.adminTab===t?'active':''}" onclick="state.adminTab='${t}';render()">${l}</button>`).join('')}
+      <hr class="divline" style="margin:1rem .5rem"/>
+      <button class="sidebar-item" onclick="navigate('predict')">🔬 New Prediction</button>
+      <button class="sidebar-item" onclick="logout()">🚪 Sign Out</button>
+    </div>
+
+    <div class="admin-content">
+      ${state.adminTab==='overview' ? `
+        <h1 class="page-title">Overview</h1>
+        <p class="page-sub">Platform statistics at a glance</p>
+        ${s ? `
+        <div class="dash-grid">
+          <div class="panel metric-card metric-total"><div class="metric-val">${s.total_users}</div><div class="metric-lbl">Registered Users</div></div>
+          <div class="panel metric-card metric-total"><div class="metric-val">${s.total_predictions}</div><div class="metric-lbl">Total Predictions</div></div>
+          <div class="panel metric-card metric-ckd"><div class="metric-val">${s.ckd_predictions}</div><div class="metric-lbl">CKD Detections</div></div>
+          <div class="panel metric-card metric-healthy"><div class="metric-val">${s.healthy_predictions}</div><div class="metric-lbl">Healthy Results</div></div>
+        </div>
+        <div class="panel" style="padding:1.5rem;margin-top:1rem">
+          <h3 style="font-size:.95rem;margin-bottom:1rem">Recent Predictions</h3>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>ID</th><th>User</th><th>Date</th><th>Result</th><th>Confidence</th><th>Risk</th><th>Action</th></tr></thead>
+              <tbody>
+                ${state.adminPredictions.slice(0,10).map(p=>`<tr>
+                  <td class="text-xs">#${p.id}</td>
+                  <td class="text-xs">${p.username}</td>
+                  <td class="text-xs text-muted">${new Date(p.created_at).toLocaleDateString()}</td>
+                  <td><span class="badge ${p.result==='CKD'?'badge-ckd':'badge-healthy'}">${p.result}</span></td>
+                  <td><span class="text-cyan">${p.confidence.toFixed(1)}%</span></td>
+                  <td><span class="badge badge-${p.risk_level.toLowerCase()}">${p.risk_level}</span></td>
+                  <td><button class="btn btn-danger btn-xs" onclick="adminDeletePrediction(${p.id})">×</button></td>
+                </tr>`).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>` : '<div class="spinner"></div>'}
+      ` : state.adminTab==='users' ? `
+        <h1 class="page-title">User Management</h1>
+        <p class="page-sub">${state.adminUsers.length} registered users</p>
+        <div class="search-bar">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text3)"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input type="text" placeholder="Search users..." value="${state.adminSearch}" oninput="state.adminSearch=this.value;render()"/>
+        </div>
+        <div class="panel" style="padding:1rem">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Role</th><th>Tests</th><th>Joined</th><th>Action</th></tr></thead>
+              <tbody>
+                ${state.adminUsers
+                  .filter(u=>!state.adminSearch || u.username.toLowerCase().includes(state.adminSearch.toLowerCase()) || u.email.toLowerCase().includes(state.adminSearch.toLowerCase()))
+                  .map(u=>`<tr>
+                    <td class="text-xs">#${u.id}</td>
+                    <td class="fw-bold" style="font-size:.85rem">${u.username}</td>
+                    <td class="text-xs text-muted">${u.email}</td>
+                    <td><span class="badge ${u.role==='admin'?'badge-admin':'badge-user'}">${u.role}</span></td>
+                    <td class="text-cyan fw-bold">${u.prediction_count}</td>
+                    <td class="text-xs text-muted">${new Date(u.created_at).toLocaleDateString()}</td>
+                    <td>${u.role!=='admin'?`<button class="btn btn-danger btn-xs" onclick="adminDeleteUser(${u.id})">Delete</button>`:'-'}</td>
+                  </tr>`).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ` : state.adminTab==='predictions' ? `
+        <h1 class="page-title">All Predictions</h1>
+        <p class="page-sub">${state.adminPredictions.length} total records</p>
+        <div class="panel" style="padding:1rem">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>ID</th><th>User</th><th>Date</th><th>Result</th><th>Confidence</th><th>Risk</th><th>SC</th><th>Hemo</th><th>Action</th></tr></thead>
+              <tbody>
+                ${state.adminPredictions.map(p=>`<tr>
+                  <td class="text-xs">#${p.id}</td>
+                  <td class="text-xs fw-bold">${p.username}</td>
+                  <td class="text-xs text-muted">${new Date(p.created_at).toLocaleDateString()}</td>
+                  <td><span class="badge ${p.result==='CKD'?'badge-ckd':'badge-healthy'}">${p.result}</span></td>
+                  <td><span class="text-cyan">${p.confidence.toFixed(1)}%</span></td>
+                  <td><span class="badge badge-${p.risk_level.toLowerCase()}">${p.risk_level}</span></td>
+                  <td class="text-xs">${p.input_data?.sc?.toFixed(1)||'-'}</td>
+                  <td class="text-xs">${p.input_data?.hemo?.toFixed(1)||'-'}</td>
+                  <td><button class="btn btn-danger btn-xs" onclick="adminDeletePrediction(${p.id})">×</button></td>
+                </tr>`).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ` : `
+        <h1 class="page-title">Model Information</h1>
+        <p class="page-sub">Random Forest classifier details</p>
+        ${state.modelMetrics ? `
+        <div class="panel" style="padding:1.5rem;margin-bottom:1.25rem">
+          <h3 style="font-size:.95rem;margin-bottom:1rem">Performance Metrics</h3>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:1rem">
+            ${Object.entries(state.modelMetrics.metrics).map(([k,v])=>`
+              <div class="panel2" style="padding:.75rem;text-align:center">
+                <div style="font-size:1.3rem;font-weight:800;font-family:Syne;color:var(--cyan)">${typeof v==='number'?(v>1?v.toFixed(3):(v*100).toFixed(1)+'%'):'N/A'}</div>
+                <div class="text-xs text-muted mt-1">${k.replace(/_/g,' ')}</div>
+              </div>`).join('')}
+          </div>
+        </div>
+        <div class="panel" style="padding:1.5rem">
+          <h3 style="font-size:.95rem;margin-bottom:1rem">Feature Importance</h3>
+          <canvas id="adminFeatureChart" height="160"></canvas>
+        </div>` : '<div class="spinner"></div>'}
+      `}
+    </div>
+  </div>`;
+}
+
+function initAdminCharts(){
+  if(state.adminTab==='model' && state.modelMetrics){
+    setTimeout(()=>{
+      const fi = state.modelMetrics.feature_importance;
+      const top10 = Object.entries(fi).slice(0,10);
+      const el = document.getElementById('adminFeatureChart');
+      if(el) new Chart(el,{type:'bar',data:{
+        labels:top10.map(([k])=>k.toUpperCase()),
+        datasets:[{data:top10.map(([,v])=>+(v*100).toFixed(2)),
+          backgroundColor:'rgba(0,229,255,.4)',borderColor:'#00e5ff',borderWidth:1,borderRadius:4}]
+      },options:{indexAxis:'y',plugins:{legend:{display:false}},
+        scales:{x:{ticks:{color:'#7fa8c8',callback:v=>v+'%'},grid:{color:'rgba(255,255,255,.04)'}},y:{ticks:{color:'#7fa8c8'}}}}});
+    }, 100);
+  }
+}
+
+// ── MAIN RENDER ────────────────────────────────────────────────────────────────
+function render(){
+  const root = document.getElementById('root');
+  let content = '';
+
+  switch(state.page){
+    case 'landing': content = LandingPage(); break;
+    case 'login': content = LoginPage(); break;
+    case 'register': content = RegisterPage(); break;
+    case 'dashboard': content = DashboardPage(); break;
+    case 'predict': content = PredictPage(); break;
+    case 'result': content = ResultPage(); break;
+    case 'history': content = HistoryPage(); break;
+    case 'analytics': content = AnalyticsPage(); break;
+    case 'admin': content = AdminPage(); break;
+    default: content = LandingPage();
+  }
+
+  root.innerHTML = `<div class="app">${Navbar()}${content}</div>`;
+
+  // Post-render side effects
+  if(state.page==='dashboard' && state.token && !state.predictions.length) loadPredictions();
+  if(state.page==='history' && state.token) loadPredictions();
+  if(state.page==='analytics'){
+    if(!state.analytics) loadAnalytics();
+    if(!state.modelMetrics) loadModelMetrics();
+    setTimeout(initAnalyticsCharts, 200);
+  }
+  if(state.page==='admin'){
+    if(!state.adminStats) loadAdminData();
+    if(!state.modelMetrics) loadModelMetrics();
+    initAdminCharts();
+  }
+}
+
+// Initial render
+render();
+</script>
+</body>
+</html>
